@@ -4,13 +4,14 @@
 
 - [x] Original desktop HUD
 - [x] Installed-build scanner
-- [x] .build.info parser
+- [x] `.build.info` parser
 - [x] ListFile import/search
 - [x] BLP2 metadata inspection
 - [x] DB2/DBC header inspection
 - [x] BLTE raw/zlib decoder foundation
 - [x] Addon Lab / Lua constant generator
-- [ ] App icon and installer branding
+- [x] Original WR app icon foundation
+- [ ] Installer branding and signed release packaging
 - [ ] Persistent settings
 
 ## 0.2 - Local CASC
