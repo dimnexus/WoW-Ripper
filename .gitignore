@@ -1,19 +1,7 @@
-# nodejs modules
-/node_modules
-
-# Output directory for builds.
-/bin
-/publish
-
-# IDE configuration
-/.vscode
-/.idea
-
-# Runtime directory for tests.
-/tests/user_data
-
-# Python/cache/OS noise
-__pycache__/
-.DS_Store
+/target
+/src-tauri/target
 *.log
-/logs
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
