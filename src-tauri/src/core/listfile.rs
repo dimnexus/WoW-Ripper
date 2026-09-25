@@ -68,7 +68,7 @@ impl ListfileIndex {
 }
 
 fn extension_of(path: &str) -> String {
-    let normalized = path.replace('\', "/");
+    let normalized = path.replace('\\', "/");
     normalized.rsplit('.').next().filter(|part| !part.contains('/'))
         .map(|part| part.to_ascii_lowercase()).unwrap_or_else(|| "(none)".to_string())
 }
