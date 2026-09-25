@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WoW Ripper</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail">
+      <div class="brand" title="WoW Ripper">
+        <div class="brand-mark">WR</div>
+        <div class="brand-copy"><strong>WoW</strong><span>Ripper</span></div>
+      </div>
+
+      <nav class="nav-stack" aria-label="Primary">
+        <button class="nav-item active" data-view="home"><span class="nav-glyph">H</span><span>Home</span></button>
+        <button class="nav-item" data-view="files"><span class="nav-glyph">F</span><span>Files</span></button>
+        <button class="nav-item" data-view="textures"><span class="nav-glyph">T</span><span>Textures</span></button>
+        <button class="nav-item" data-view="models"><span class="nav-glyph">M</span><span>Models</span></button>
+        <button class="nav-item" data-view="world"><span class="nav-glyph">W</span><span>World</span></button>
+        <button class="nav-item" data-view="audio"><span class="nav-glyph">A</span><span>Audio</span></button>
+        <button class="nav-item" data-view="data"><span class="nav-glyph">D</span><span>DB2</span></button>
+        <button class="nav-item" data-view="addon"><span class="nav-glyph">{ }</span><span>Addon Lab</span></button>
+      </nav>
+
+      <div class="rail-bottom">
+        <button class="nav-item" data-view="diagnostics"><span class="nav-glyph">!</span><span>Diagnostics</span></button>
+        <div class="version-tag">alpha 0.1</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs">
+          <span class="muted">Workspace</span>
+          <span>/</span>
+          <strong id="viewTitle">Dashboard</strong>
+        </div>
+        <div class="top-actions">
+          <div id="buildPill" class="build-pill"><span class="status-dot idle"></span><span>No build loaded</span></div>
+          <button id="scanButton" class="button secondary">Scan Installs</button>
+          <button id="openBuildButton" class="button primary">Load Build</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div class="view active" id="view-home">
+          <div class="hero-panel">
+            <div>
+              <div class="eyebrow">ORIGINAL WORLD OF WARCRAFT DATA TOOLKIT</div>
+              <h1>Rip less blindly.<br><span>Research everything.</span></h1>
+              <p>One workspace for FileDataIDs, client tables, textures, models, maps, audio, and addon research.</p>
+              <div class="hero-actions">
+                <button class="button primary" data-jump="files">Browse Game Data</button>
+                <button class="button secondary" data-jump="addon">Open Addon Lab</button>
+              </div>
+            </div>
+            <div class="core-orbit" aria-hidden="true">
+              <div class="orbit-ring ring-a"></div>
+              <div class="orbit-ring ring-b"></div>
+              <div class="core-emblem">WR</div>
+              <span class="orbit-node n1">DB2</span><span class="orbit-node n2">BLP</span><span class="orbit-node n3">M2</span><span class="orbit-node n4">ADT</span>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card"><span>Loaded Build</span><strong id="metricBuild">None</strong><small id="metricProduct">Scan or load a WoW folder</small></article>
+            <article class="metric-card"><span>ListFile Entries</span><strong id="metricListfile">0</strong><small>FileDataID/path index</small></article>
+            <article class="metric-card"><span>Queue</span><strong id="metricQueue">0</strong><small>Pending extraction jobs</small></article>
+            <article class="metric-card"><span>Core</span><strong>Native</strong><small>Rust format pipeline</small></article>
+          </div>
+
+          <div class="section-heading"><div><span class="eyebrow">WORKBENCH</span><h2>Pick a research path</h2></div></div>
+          <div class="tool-grid">
+            <button class="tool-card" data-jump="files"><span class="tool-code">CASC</span><strong>File Browser</strong><p>Search FileDataIDs, paths, and local content.</p></button>
+            <button class="tool-card" data-jump="textures"><span class="tool-code">BLP</span><strong>Texture Studio</strong><p>Inspect textures, mipmaps, alpha, and exports.</p></button>
+            <button class="tool-card" data-jump="data"><span class="tool-code">DB2</span><strong>Data Studio</strong><p>Inspect client tables for addon research.</p></button>
+            <button class="tool-card" data-jump="addon"><span class="tool-code">LUA</span><strong>Addon Lab</strong><p>Turn discoveries into addon-ready constants.</p></button>
+            <button class="tool-card disabled" data-jump="models"><span class="tool-code">M2</span><strong>Model Studio</strong><p>Model parsing and 3D preview is on the roadmap.</p></button>
+            <button class="tool-card disabled" data-jump="world"><span class="tool-code">ADT</span><strong>World Studio</strong><p>Terrain, maps, doodads, and world assets.</p></button>
+          </div>
+        </div>
+
+        <div class="view" id="view-files">
+          <div class="view-header"><div><span class="eyebrow">FILE SYSTEM</span><h1>CASC Browser</h1><p>Index FileDataIDs now; direct local CASC traversal is the next storage milestone.</p></div></div>
+          <div class="split-layout">
+            <section class="panel">
+              <div class="panel-title"><h3>ListFile Index</h3><span class="badge">FileDataID</span></div>
+              <label class="field-label">ListFile path</label>
+              <div class="input-row"><input id="listfilePath" class="text-input" placeholder="C:\\data\\community-listfile.csv" /><button id="importListfile" class="button primary">Import</button></div>
+              <div class="search-row"><input id="fileSearch" class="text-input" placeholder="Search path or FileDataID..." /><button id="searchFiles" class="button secondary">Search</button></div>
+              <div id="fileResults" class="results empty-state">Import a semicolon-separated FileDataID/path ListFile to begin.</div>
+            </section>
+            <aside class="panel inspector-panel">
+              <div class="panel-title"><h3>Asset Inspector</h3><span class="badge neutral">Local file</span></div>
+              <label class="field-label">Extracted/raw asset path</label>
+              <div class="input-row"><input id="inspectPath" class="text-input" placeholder="C:\\exports\\texture.blp" /><button id="inspectButton" class="button secondary">Inspect</button></div>
+              <div id="inspectResult" class="inspection empty-state">Magic, dimensions, table headers, and BLTE details appear here.</div>
+              <div class="divider"></div>
+              <label class="field-label">BLTE output path</label>
+              <div class="input-row"><input id="blteOutputPath" class="text-input" placeholder="C:\\exports\\decoded.bin" /><button id="decodeBlteButton" class="button primary">Decode BLTE</button></div>
+            </aside>
+          </div>
+        </div>
+
+        <div class="view" id="view-textures">
+          <div class="view-header"><div><span class="eyebrow">TEXTURE STUDIO</span><h1>BLP Workbench</h1><p>Header inspection is active. Pixel decode and PNG/TGA export come in the texture milestone.</p></div></div>
+          <div class="coming-grid">
+            <article class="coming-card ready"><span>READY</span><h3>BLP2 Header Inspector</h3><p>Encoding, alpha depth, alpha encoding, dimensions, mip offsets and sizes.</p></article>
+            <article class="coming-card"><span>NEXT</span><h3>Preview Decoder</h3><p>Palette, BGRA, DXT1, DXT3 and DXT5 rendering.</p></article>
+            <article class="coming-card"><span>NEXT</span><h3>Bulk Conversion</h3><p>Queue entire texture trees into PNG/TGA output profiles.</p></article>
+          </div>
+        </div>
+
+        <div class="view" id="view-models"><div class="view-header"><div><span class="eyebrow">MODEL STUDIO</span><h1>M2 / WMO</h1><p>The UI slot is reserved; parser and dependency graph work follows local CASC.</p></div></div><div class="blueprint">MODEL PIPELINE<br><small>M2 -> skeleton -> materials -> textures -> animations -> glTF</small></div></div>
+        <div class="view" id="view-world"><div class="view-header"><div><span class="eyebrow">WORLD STUDIO</span><h1>Maps & Terrain</h1><p>WDT/ADT terrain and dependency research will live here.</p></div></div><div class="blueprint">WORLD PIPELINE<br><small>Map -> WDT -> ADT -> doodads -> WMO -> texture dependencies</small></div></div>
+        <div class="view" id="view-audio"><div class="view-header"><div><span class="eyebrow">AUDIO</span><h1>Sound Browser</h1><p>FileDataID discovery, preview, metadata, and batch extraction are planned.</p></div></div><div class="blueprint">AUDIO PIPELINE<br><small>Search -> preview -> identify -> queue -> export</small></div></div>
+
+        <div class="view" id="view-data">
+          <div class="view-header"><div><span class="eyebrow">DATA STUDIO</span><h1>DBC / DB2 Inspector</h1><p>Inspect extracted client tables while the schema-aware browser is built.</p></div></div>
+          <section class="panel narrow-panel">
+            <label class="field-label">DBC/DB2 file path</label>
+            <div class="input-row"><input id="db2Path" class="text-input" placeholder="C:\\exports\\SpellName.db2" /><button id="db2InspectButton" class="button primary">Inspect Table</button></div>
+            <div id="db2Result" class="inspection empty-state">Common table metadata appears here.</div>
+          </section>
+        </div>
+
+        <div class="view" id="view-addon">
+          <div class="view-header"><div><span class="eyebrow">ADDON LAB</span><h1>Research -> Lua</h1><p>Search the imported FileDataID index, select results, and generate addon-ready constants without retyping IDs.</p></div></div>
+          <div class="split-layout addon-layout">
+            <section class="panel">
+              <div class="search-row"><input id="addonSearch" class="text-input" placeholder="icons, spell, minimap, interface/..." /><button id="addonSearchButton" class="button primary">Find Assets</button></div>
+              <div id="addonResults" class="results empty-state">Import a ListFile in Files first, then search here.</div>
+            </section>
+            <section class="panel code-panel">
+              <div class="panel-title"><h3>Lua Output</h3><button id="copyLua" class="button tiny">Copy</button></div>
+              <textarea id="luaOutput" spellcheck="false" placeholder="-- Selected assets become Lua constants here."></textarea>
+              <div class="code-actions"><button id="generateLua" class="button primary">Generate Constants</button><button id="clearLuaSelection" class="button secondary">Clear Selection</button></div>
+            </section>
+          </div>
+        </div>
+
+        <div class="view" id="view-diagnostics">
+          <div class="view-header"><div><span class="eyebrow">DIAGNOSTICS</span><h1>Core Status</h1><p>Clean-room implementation status and local diagnostic output.</p></div></div>
+          <div class="diagnostic-grid">
+            <article class="diag"><span class="status-dot good"></span><div><strong>Original codebase</strong><small>No third-party extractor source vendored.</small></div></article>
+            <article class="diag"><span class="status-dot good"></span><div><strong>Build parser</strong><small>Generic .build.info parser active.</small></div></article>
+            <article class="diag"><span class="status-dot good"></span><div><strong>BLP / DB2 inspection</strong><small>Metadata inspection foundation active.</small></div></article>
+            <article class="diag"><span class="status-dot warn"></span><div><strong>Local CASC</strong><small>Index/root/encoding traversal is the next core milestone.</small></div></article>
+          </div>
+          <pre id="eventLog" class="event-log">WoW Ripper ready.</pre>
+        </div>
+      </section>
+
+      <footer class="queue-bar">
+        <div><span class="status-dot idle"></span><strong>Extraction Queue</strong><span id="queueSummary">Idle</span></div>
+        <div class="queue-actions"><span id="queueCount">0 jobs</span><button id="clearQueue" class="queue-clear">Clear</button></div>
+      </footer>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
