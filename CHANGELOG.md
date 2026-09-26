@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.3 - Windows desktop preview
+
+- Added a native Windows folder picker for selecting WoW builds.
+- Added a native extraction-output folder picker.
+- Enabled NSIS Windows installer packaging.
+- Added automated GitHub Release builds so normal users do not need Rust, Cargo, or PowerShell.
+- Kept the alpha.2 live CASC folder/file browser, direct inspection, extraction, search, and Addon Lab integration.
+
 ## 0.1.0-alpha.2 - live CASC browser
 
 - Added live CASC catalog opening for the explicitly selected WoW product.

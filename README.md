@@ -13,6 +13,12 @@ This repository is a clean-room implementation. It does not contain source code 
 - Provide addon-focused research tools that turn asset discoveries into Lua-friendly data.
 - Keep ripping, inspection, conversion, and queue management in one fast desktop UI.
 
+## Install on Windows
+
+Download the latest `WoW-Ripper_*_setup.exe` from GitHub Releases and run it. The installed app launches normally from Windows; Rust, Cargo, PowerShell, and a source checkout are not required for normal use.
+
+The app uses a native folder picker. Choose the specific WoW product folder you want to research, such as `_classic_beta_`, `_classic_`, `_classic_era_`, or `_retail_`. WoW Ripper opens the shared CASC storage and presents named game files in the Files workspace.
+
 ## Current alpha
 
 The initial foundation includes:

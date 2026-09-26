@@ -120,10 +120,11 @@ async function openCascCatalog(selectedPath) {
 
 $('openBuildButton').addEventListener('click', async () => {
   const remembered = localStorage.getItem(SAVED_WOW_PATH_KEY) || '';
-  const path = prompt('Enter your World of Warcraft product folder path:', remembered);
-  if (!path) return;
 
   try {
+    const path = await call('choose_folder', { initialPath: remembered || null });
+    if (!path) return;
+
     const info = await call('inspect_wow_install', { path });
     localStorage.setItem(SAVED_WOW_PATH_KEY, path);
     updateBuildUI(info);
@@ -262,6 +263,17 @@ $('cascExtractButton').addEventListener('click', async () => {
 $('extractRoot').addEventListener('change', () => {
   const value = $('extractRoot').value.trim();
   if (value) localStorage.setItem(SAVED_EXTRACT_ROOT_KEY, value);
+});
+
+$('chooseExtractRoot').addEventListener('click', async () => {
+  const remembered = $('extractRoot').value.trim() || localStorage.getItem(SAVED_EXTRACT_ROOT_KEY) || '';
+  try {
+    const path = await call('choose_folder', { initialPath: remembered || null });
+    if (!path) return;
+    $('extractRoot').value = path;
+    localStorage.setItem(SAVED_EXTRACT_ROOT_KEY, path);
+    log('Extraction folder selected', { path });
+  } catch (err) { /* logged */ }
 });
 
 $('importListfile').addEventListener('click', async () => {

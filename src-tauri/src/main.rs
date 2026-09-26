@@ -27,6 +27,20 @@ fn scan_installs() -> Vec<InstallCandidate> {
 }
 
 #[tauri::command]
+fn choose_folder(initial_path: Option<String>) -> Option<String> {
+    let mut dialog = rfd::FileDialog::new();
+
+    if let Some(initial) = initial_path.as_deref().filter(|value| !value.trim().is_empty()) {
+        let path = user_path(initial);
+        if path.is_dir() {
+            dialog = dialog.set_directory(path);
+        }
+    }
+
+    dialog.pick_folder().map(|path| path.display().to_string())
+}
+
+#[tauri::command]
 fn inspect_wow_install(path: String) -> Result<WowBuildInfo, String> {
     build_info::inspect_install(&user_path(&path)).map_err(|err| err.to_string())
 }
@@ -142,6 +156,7 @@ fn main() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             scan_installs,
+            choose_folder,
             inspect_wow_install,
             open_casc_catalog,
             browse_casc_directory,

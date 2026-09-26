@@ -1,6 +1,6 @@
 [package]
 name = "wow-ripper"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.3"
 description = "Original World of Warcraft data research and extraction toolkit"
 authors = ["Rooster_Roost"]
 edition = "2021"
@@ -16,6 +16,7 @@ serde_json = "1"
 thiserror = "2"
 flate2 = "1"
 casc-lib = "0.2.1"
+rfd = "0.17.2"
 
 [profile.release]
 strip = true

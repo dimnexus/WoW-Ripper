@@ -1,0 +1,45 @@
+name: Publish Windows Installer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wow-ripper-windows-release
+  cancel-in-progress: true
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build and publish Windows installer
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: src-tauri
+          tagName: v__VERSION__
+          releaseName: WoW Ripper v__VERSION__
+          releaseBody: |
+            Windows desktop preview of WoW Ripper.
+
+            Install the setup EXE and launch WoW Ripper normally from Windows. No Rust, Cargo, or PowerShell is required for normal use.
+
+            This alpha includes the live CASC folder/file browser, FileDataID search, direct inspection/extraction, Addon Lab, and native folder pickers.
+          releaseDraft: false
+          prerelease: true
+          args: --bundles nsis
