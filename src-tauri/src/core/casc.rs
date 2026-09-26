@@ -146,12 +146,14 @@ impl CascSession {
                     extension: None,
                 });
             } else {
+                let name = rest.to_string();
+                let extension = extension_of(rest);
                 files.push(CascVirtualEntry {
-                    name: rest.to_string(),
+                    name,
                     path: normalized,
                     kind: "file".into(),
                     file_data_id: Some(file.file_data_id),
-                    extension: extension_of(rest),
+                    extension,
                 });
             }
         }
