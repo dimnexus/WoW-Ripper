@@ -272,7 +272,7 @@ fn find_install_root(selected: &Path) -> Option<PathBuf> {
 }
 
 fn normalize_virtual_path(path: &str) -> String {
-    path.replace('\', "/")
+    path.replace('\\', "/")
         .trim_matches('/')
         .split('/')
         .filter(|part| !part.is_empty())
