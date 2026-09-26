@@ -22,12 +22,12 @@ fn scan_installs() -> Vec<InstallCandidate> {
 
 #[tauri::command]
 fn inspect_wow_install(path: String) -> Result<WowBuildInfo, String> {
-    build_info::inspect_install(&PathBuf::from(path)).map_err(|err| err.to_string())
+    build_info::inspect_install(&user_path(&path)).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
 fn import_listfile(path: String, state: tauri::State<'_, AppState>) -> Result<ListfileSummary, String> {
-    let (index, summary) = ListfileIndex::load(&PathBuf::from(path)).map_err(|err| err.to_string())?;
+    let (index, summary) = ListfileIndex::load(&user_path(&path)).map_err(|err| err.to_string())?;
     *state.listfile.lock().map_err(|_| "ListFile state lock poisoned".to_string())? = Some(index);
     Ok(summary)
 }
@@ -41,13 +41,13 @@ fn search_listfile(query: String, limit: Option<usize>, state: tauri::State<'_, 
 
 #[tauri::command]
 fn inspect_asset(path: String) -> Result<AssetInspection, String> {
-    inspector::inspect(&PathBuf::from(path)).map_err(|err| err.to_string())
+    inspector::inspect(&user_path(&path)).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
 fn decode_blte_file(input_path: String, output_path: String) -> Result<DecodeResult, String> {
-    let input = PathBuf::from(&input_path);
-    let output = PathBuf::from(&output_path);
+    let input = user_path(&input_path);
+    let output = user_path(&output_path);
     let encoded = fs::read(&input).map_err(|err| err.to_string())?;
     let decoded = blte::decode(&encoded).map_err(|err| err.to_string())?;
     if let Some(parent) = output.parent() {
@@ -61,6 +61,20 @@ fn decode_blte_file(input_path: String, output_path: String) -> Result<DecodeRes
         decoded_bytes: decoded.bytes.len() as u64,
         chunks: decoded.chunks,
     })
+}
+
+fn user_path(value: &str) -> PathBuf {
+    let trimmed = value.trim();
+
+    let unquoted = if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
+        &trimmed[1..trimmed.len() - 1]
+    } else if trimmed.len() >= 2 && trimmed.starts_with(''') && trimmed.ends_with(''') {
+        &trimmed[1..trimmed.len() - 1]
+    } else {
+        trimmed
+    };
+
+    PathBuf::from(unquoted)
 }
 
 fn main() {
