@@ -68,8 +68,6 @@ fn user_path(value: &str) -> PathBuf {
 
     let unquoted = if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
         &trimmed[1..trimmed.len() - 1]
-    } else if trimmed.len() >= 2 && trimmed.starts_with(''') && trimmed.ends_with(''') {
-        &trimmed[1..trimmed.len() - 1]
     } else {
         trimmed
     };
