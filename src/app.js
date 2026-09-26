@@ -1,10 +1,15 @@
 const $ = (id) => document.getElementById(id);
 const invoke = window.__TAURI__?.core?.invoke;
 const SAVED_WOW_PATH_KEY = 'wowRipper.wowInstallPath';
+const SAVED_EXTRACT_ROOT_KEY = 'wowRipper.extractRoot';
 
 const state = {
   view: 'home',
   build: null,
+  cascInfo: null,
+  cascReady: false,
+  currentFolder: '',
+  selectedCascFile: null,
   listfileCount: 0,
   queue: [],
   luaSelected: new Map(),
@@ -15,7 +20,7 @@ function log(message, payload) {
   if (!box) return;
   const stamp = new Date().toLocaleTimeString();
   const text = payload ? `${message}\n${JSON.stringify(payload, null, 2)}` : message;
-  box.textContent = `[${stamp}] ${text}\n\n${box.textContent}`.slice(0, 12000);
+  box.textContent = `[${stamp}] ${text}\n\n${box.textContent}`.slice(0, 16000);
 }
 
 function showView(name) {
@@ -74,15 +79,58 @@ function addQueue(label, status = 'completed') {
 
 $('clearQueue').addEventListener('click', () => { state.queue.length = 0; updateQueueUI(); });
 
-$('openBuildButton').addEventListener('click', () => {
+function setCascStatus(text, mode = '') {
+  const el = $('cascStatus');
+  el.className = `casc-status ${mode}`.trim();
+  const dotClass = mode === 'ready' ? 'good' : mode === 'error' ? 'warn' : 'idle';
+  el.innerHTML = `<span class="status-dot ${dotClass}"></span><span>${escapeHtml(text)}</span>`;
+}
+
+async function openCascCatalog(selectedPath) {
+  state.cascReady = false;
+  state.selectedCascFile = null;
+  setCascStatus('Opening CASC storage, root, encoding table, and FileDataID catalog...');
+  clearCascSelection();
+
+  try {
+    const info = await call('open_casc_catalog', { path: selectedPath });
+    state.cascInfo = info;
+    state.cascReady = true;
+    state.currentFolder = '';
+    state.listfileCount = info.files;
+    $('metricListfile').textContent = Number(info.files).toLocaleString();
+
+    if (!$('extractRoot').value.trim()) {
+      $('extractRoot').value = localStorage.getItem(SAVED_EXTRACT_ROOT_KEY) || info.default_extract_root || '';
+    }
+
+    setCascStatus(`${info.product} ${info.version} · ${Number(info.files).toLocaleString()} named files · ${info.root_format} root`, 'ready');
+    log('CASC catalog opened', info);
+    await refreshCascDirectory();
+  } catch (err) {
+    state.cascInfo = null;
+    state.cascReady = false;
+    setCascStatus(`CASC could not be opened: ${String(err)}`, 'error');
+    $('cascFolders').className = 'browser-list empty-state';
+    $('cascFolders').textContent = 'CASC open failed. See Diagnostics for the exact error.';
+    $('cascFiles').className = 'browser-list empty-state';
+    $('cascFiles').textContent = 'No files loaded.';
+  }
+}
+
+$('openBuildButton').addEventListener('click', async () => {
   const remembered = localStorage.getItem(SAVED_WOW_PATH_KEY) || '';
-  const path = prompt('Enter your World of Warcraft installation folder path:', remembered);
+  const path = prompt('Enter your World of Warcraft product folder path:', remembered);
   if (!path) return;
-  call('inspect_wow_install', { path }).then((info) => {
+
+  try {
+    const info = await call('inspect_wow_install', { path });
     localStorage.setItem(SAVED_WOW_PATH_KEY, path);
     updateBuildUI(info);
     log('Loaded build from selected folder', info);
-  }).catch(() => {});
+    await openCascCatalog(path);
+    showView('files');
+  } catch (err) { /* logged */ }
 });
 
 async function loadRememberedBuild() {
@@ -92,10 +140,129 @@ async function loadRememberedBuild() {
     const info = await call('inspect_wow_install', { path });
     updateBuildUI(info);
     log('Reloaded remembered WoW folder', { path });
+    await openCascCatalog(path);
   } catch (err) {
     log('Remembered WoW folder could not be loaded. Choose the folder again.', { path });
   }
 }
+
+async function refreshCascDirectory() {
+  if (!state.cascReady) return;
+  const listing = await call('browse_casc_directory', { path: state.currentFolder });
+  state.currentFolder = listing.path || '';
+  renderCascDirectory(listing);
+}
+
+function renderCascDirectory(listing) {
+  $('cascBreadcrumb').textContent = listing.path ? `/${listing.path}` : '/';
+  $('folderCount').textContent = listing.folders.length;
+  $('fileCount').textContent = listing.files.length;
+
+  const folders = $('cascFolders');
+  folders.className = 'browser-list';
+  folders.innerHTML = listing.folders.length
+    ? listing.folders.map((entry) => `<div class="browser-row folder" data-folder="${escapeAttr(entry.path)}"><span class="browser-icon">DIR</span><span class="browser-name" title="${escapeAttr(entry.path)}">${escapeHtml(entry.name)}</span></div>`).join('')
+    : '<div class="empty-state">No subfolders.</div>';
+
+  folders.querySelectorAll('[data-folder]').forEach((row) => row.addEventListener('click', async () => {
+    state.currentFolder = row.dataset.folder;
+    clearCascSelection();
+    await refreshCascDirectory();
+  }));
+
+  const files = $('cascFiles');
+  files.className = 'browser-list';
+  files.innerHTML = listing.files.length
+    ? listing.files.map((entry) => `<div class="browser-row file" data-fdid="${entry.file_data_id}" data-path="${escapeAttr(entry.path)}" data-name="${escapeAttr(entry.name)}" data-ext="${escapeAttr(entry.extension || '')}"><span class="browser-id">${entry.file_data_id}</span><span class="browser-name" title="${escapeAttr(entry.path)}">${escapeHtml(entry.name)}</span><span class="browser-ext">${escapeHtml(entry.extension || '')}</span></div>`).join('')
+    : '<div class="empty-state">No named files directly in this folder.</div>';
+
+  files.querySelectorAll('[data-fdid]').forEach((row) => row.addEventListener('click', () => selectCascFile(row)));
+}
+
+function selectCascFile(row) {
+  $('cascFiles').querySelectorAll('.browser-row').forEach((item) => item.classList.remove('selected'));
+  row.classList.add('selected');
+
+  state.selectedCascFile = {
+    file_data_id: Number(row.dataset.fdid),
+    path: row.dataset.path,
+    name: row.dataset.name,
+    extension: row.dataset.ext,
+  };
+
+  $('cascSelection').className = 'selection-card';
+  $('cascSelection').innerHTML = `<div class="selection-path">${escapeHtml(state.selectedCascFile.path)}</div><div class="selection-meta"><span>FileDataID <strong>${state.selectedCascFile.file_data_id}</strong></span><span>${escapeHtml((state.selectedCascFile.extension || 'file').toUpperCase())}</span></div>`;
+  $('cascInspectButton').disabled = false;
+  $('cascExtractButton').disabled = false;
+  $('cascInspectResult').className = 'inspection empty-state compact-inspection';
+  $('cascInspectResult').textContent = 'Click Inspect to read this file directly from CASC.';
+}
+
+function clearCascSelection() {
+  state.selectedCascFile = null;
+  if ($('cascSelection')) {
+    $('cascSelection').className = 'selection-card empty-state';
+    $('cascSelection').textContent = 'Select a file to inspect or extract it.';
+    $('cascInspectButton').disabled = true;
+    $('cascExtractButton').disabled = true;
+  }
+}
+
+$('cascHomeButton').addEventListener('click', async () => {
+  state.currentFolder = '';
+  clearCascSelection();
+  await refreshCascDirectory().catch(() => {});
+});
+
+$('cascUpButton').addEventListener('click', async () => {
+  if (!state.currentFolder) return;
+  const parts = state.currentFolder.split('/');
+  parts.pop();
+  state.currentFolder = parts.join('/');
+  clearCascSelection();
+  await refreshCascDirectory().catch(() => {});
+});
+
+$('cascInspectButton').addEventListener('click', async () => {
+  if (!state.selectedCascFile) return;
+  $('cascInspectButton').disabled = true;
+  try {
+    const info = await call('inspect_casc_file', { fileDataId: state.selectedCascFile.file_data_id });
+    renderInspection(info, $('cascInspectResult'));
+    log('CASC file inspected', info);
+  } catch (err) {
+    $('cascInspectResult').className = 'inspection empty-state compact-inspection';
+    $('cascInspectResult').textContent = String(err);
+  } finally {
+    $('cascInspectButton').disabled = false;
+  }
+});
+
+$('cascExtractButton').addEventListener('click', async () => {
+  if (!state.selectedCascFile) return;
+  const outputRoot = $('extractRoot').value.trim();
+  if (outputRoot) localStorage.setItem(SAVED_EXTRACT_ROOT_KEY, outputRoot);
+
+  $('cascExtractButton').disabled = true;
+  try {
+    const result = await call('extract_casc_file', {
+      fileDataId: state.selectedCascFile.file_data_id,
+      outputRoot: outputRoot || null,
+    });
+    addQueue(`Extracted ${state.selectedCascFile.name}`);
+    log('CASC file extracted', result);
+    $('cascSelection').innerHTML += `<div class="selection-meta"><span>Saved: ${escapeHtml(result.output_path)}</span></div>`;
+  } catch (err) {
+    log('CASC extraction failed', String(err));
+  } finally {
+    $('cascExtractButton').disabled = false;
+  }
+});
+
+$('extractRoot').addEventListener('change', () => {
+  const value = $('extractRoot').value.trim();
+  if (value) localStorage.setItem(SAVED_EXTRACT_ROOT_KEY, value);
+});
 
 $('importListfile').addEventListener('click', async () => {
   const path = $('listfilePath').value.trim();
@@ -104,10 +271,13 @@ $('importListfile').addEventListener('click', async () => {
     const summary = await call('import_listfile', { path });
     state.listfileCount = summary.entries;
     $('metricListfile').textContent = summary.entries.toLocaleString();
-    $('fileResults').classList.remove('empty-state');
-    $('fileResults').innerHTML = `<div class="empty-state">Indexed ${summary.entries.toLocaleString()} entries across ${summary.extensions.length} extensions.<br>Search above to begin.</div>`;
-    addQueue(`Indexed ListFile: ${summary.entries.toLocaleString()} entries`);
-    log('ListFile imported', summary);
+    addQueue(`Indexed custom ListFile: ${summary.entries.toLocaleString()} entries`);
+    log('Custom ListFile imported', summary);
+
+    if (state.build?.path) {
+      setCascStatus('Reloading CASC with the custom ListFile...');
+      await openCascCatalog(state.build.path);
+    }
   } catch (err) { /* logged */ }
 });
 
@@ -218,7 +388,20 @@ function toLuaName(path) {
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 function escapeAttr(value) { return escapeHtml(value).replace(/`/g, '&#096;'); }
 
+async function loadDefaultExtractRoot() {
+  const remembered = localStorage.getItem(SAVED_EXTRACT_ROOT_KEY);
+  if (remembered) {
+    $('extractRoot').value = remembered;
+    return;
+  }
+  if (!invoke) return;
+  try {
+    $('extractRoot').value = await call('default_extract_root');
+  } catch (_) {}
+}
+
 updateBuildUI(null);
 updateQueueUI();
+loadDefaultExtractRoot();
 loadRememberedBuild();
 log('WoW Ripper HUD initialized. Drive scanning is disabled; WoW folder selection is explicit.');

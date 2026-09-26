@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0-alpha.2 - live CASC browser
+
+- Added live CASC catalog opening for the explicitly selected WoW product.
+- Added virtual folder and file browsing.
+- Added direct FileDataID inspection from CASC.
+- Added direct selected-file extraction with original virtual paths preserved.
+- Added automatic catalog-backed Search and Addon Lab indexing.
+- Added remembered extraction destination.
+- Added optional custom ListFile override and catalog reload.
+- Integrated the MIT-licensed casc-lib Rust transport dependency without vendoring third-party source.
+
+# Changelog
+
 ## 0.1.0-alpha.1 - clean-room foundation
 
 - Created an original Tauri/Rust desktop codebase.

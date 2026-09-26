@@ -27,7 +27,7 @@
 
       <div class="rail-bottom">
         <button class="nav-item" data-view="diagnostics"><span class="nav-glyph">!</span><span>Diagnostics</span></button>
-        <div class="version-tag">alpha 0.1</div>
+        <div class="version-tag">alpha 0.2</div>
       </div>
     </aside>
 
@@ -83,23 +83,63 @@
         </div>
 
         <div class="view" id="view-files">
-          <div class="view-header"><div><span class="eyebrow">FILE SYSTEM</span><h1>CASC Browser</h1><p>Index FileDataIDs now; direct local CASC traversal is the next storage milestone.</p></div></div>
-          <div class="split-layout">
-            <section class="panel">
-              <div class="panel-title"><h3>ListFile Index</h3><span class="badge">FileDataID</span></div>
-              <label class="field-label">ListFile path</label>
-              <div class="input-row"><input id="listfilePath" class="text-input" placeholder="C:\\data\\community-listfile.csv" /><button id="importListfile" class="button primary">Import</button></div>
-              <div class="search-row"><input id="fileSearch" class="text-input" placeholder="Search path or FileDataID..." /><button id="searchFiles" class="button secondary">Search</button></div>
-              <div id="fileResults" class="results empty-state">Import a semicolon-separated FileDataID/path ListFile to begin.</div>
+          <div class="view-header"><div><span class="eyebrow">FILE SYSTEM</span><h1>CASC Browser</h1><p>Browse the selected WoW build as a virtual filesystem, inspect files directly from CASC, and extract them without a separate exporter.</p></div></div>
+
+          <div id="cascStatus" class="casc-status"><span class="status-dot idle"></span><span>Choose a WoW product folder to open its CASC catalog.</span></div>
+
+          <div class="casc-toolbar">
+            <button id="cascHomeButton" class="button secondary">Root</button>
+            <button id="cascUpButton" class="button secondary">Up</button>
+            <div id="cascBreadcrumb" class="casc-breadcrumb">/</div>
+            <div class="extract-destination">
+              <span>Extract to</span>
+              <input id="extractRoot" class="text-input" placeholder="Documents\WoW Ripper\Extracted" />
+            </div>
+          </div>
+
+          <div class="casc-browser-grid">
+            <section class="panel browser-panel">
+              <div class="panel-title"><h3>Folders</h3><span id="folderCount" class="badge neutral">0</span></div>
+              <div id="cascFolders" class="browser-list empty-state">Open a WoW build to browse folders.</div>
             </section>
+
+            <section class="panel browser-panel">
+              <div class="panel-title"><h3>Files</h3><span id="fileCount" class="badge">0</span></div>
+              <div id="cascFiles" class="browser-list empty-state">Select a folder to view its files.</div>
+            </section>
+
+            <aside class="panel selected-panel">
+              <div class="panel-title"><h3>Selected File</h3><span class="badge neutral">CASC</span></div>
+              <div id="cascSelection" class="selection-card empty-state">Select a file to inspect or extract it.</div>
+              <div class="selected-actions">
+                <button id="cascInspectButton" class="button secondary" disabled>Inspect</button>
+                <button id="cascExtractButton" class="button primary" disabled>Extract</button>
+              </div>
+              <div id="cascInspectResult" class="inspection empty-state compact-inspection">File metadata appears here after Inspect.</div>
+            </aside>
+          </div>
+
+          <div class="section-heading"><div><span class="eyebrow">RESEARCH TOOLS</span><h2>Search & advanced input</h2></div></div>
+          <div class="split-layout browser-tools">
+            <section class="panel">
+              <div class="panel-title"><h3>FileDataID Search</h3><span class="badge">Catalog</span></div>
+              <div class="search-row"><input id="fileSearch" class="text-input" placeholder="Search path or FileDataID..." /><button id="searchFiles" class="button secondary">Search</button></div>
+              <div id="fileResults" class="results empty-state">The loaded CASC catalog becomes searchable automatically.</div>
+
+              <div class="divider"></div>
+              <div class="panel-title"><h3>Custom ListFile</h3><span class="badge neutral">Optional</span></div>
+              <label class="field-label">Override/community ListFile path</label>
+              <div class="input-row"><input id="listfilePath" class="text-input" placeholder="C:\data\community-listfile.csv" /><button id="importListfile" class="button secondary">Import & Reload</button></div>
+            </section>
+
             <aside class="panel inspector-panel">
-              <div class="panel-title"><h3>Asset Inspector</h3><span class="badge neutral">Local file</span></div>
-              <label class="field-label">Extracted/raw asset path</label>
-              <div class="input-row"><input id="inspectPath" class="text-input" placeholder="C:\\exports\\texture.blp" /><button id="inspectButton" class="button secondary">Inspect</button></div>
+              <div class="panel-title"><h3>Raw Asset Inspector</h3><span class="badge neutral">Local file</span></div>
+              <label class="field-label">Already-extracted/raw asset path</label>
+              <div class="input-row"><input id="inspectPath" class="text-input" placeholder="C:\exports\texture.blp" /><button id="inspectButton" class="button secondary">Inspect</button></div>
               <div id="inspectResult" class="inspection empty-state">Magic, dimensions, table headers, and BLTE details appear here.</div>
               <div class="divider"></div>
               <label class="field-label">BLTE output path</label>
-              <div class="input-row"><input id="blteOutputPath" class="text-input" placeholder="C:\\exports\\decoded.bin" /><button id="decodeBlteButton" class="button primary">Decode BLTE</button></div>
+              <div class="input-row"><input id="blteOutputPath" class="text-input" placeholder="C:\exports\decoded.bin" /><button id="decodeBlteButton" class="button primary">Decode BLTE</button></div>
             </aside>
           </div>
         </div>
@@ -127,11 +167,11 @@
         </div>
 
         <div class="view" id="view-addon">
-          <div class="view-header"><div><span class="eyebrow">ADDON LAB</span><h1>Research -> Lua</h1><p>Search the imported FileDataID index, select results, and generate addon-ready constants without retyping IDs.</p></div></div>
+          <div class="view-header"><div><span class="eyebrow">ADDON LAB</span><h1>Research -> Lua</h1><p>Search the loaded CASC catalog, select results, and generate addon-ready constants without retyping IDs.</p></div></div>
           <div class="split-layout addon-layout">
             <section class="panel">
               <div class="search-row"><input id="addonSearch" class="text-input" placeholder="icons, spell, minimap, interface/..." /><button id="addonSearchButton" class="button primary">Find Assets</button></div>
-              <div id="addonResults" class="results empty-state">Import a ListFile in Files first, then search here.</div>
+              <div id="addonResults" class="results empty-state">Load a WoW build, then search its FileDataID catalog here.</div>
             </section>
             <section class="panel code-panel">
               <div class="panel-title"><h3>Lua Output</h3><button id="copyLua" class="button tiny">Copy</button></div>
@@ -147,7 +187,7 @@
             <article class="diag"><span class="status-dot good"></span><div><strong>Original codebase</strong><small>No third-party extractor source vendored.</small></div></article>
             <article class="diag"><span class="status-dot good"></span><div><strong>Build parser</strong><small>Generic .build.info parser active.</small></div></article>
             <article class="diag"><span class="status-dot good"></span><div><strong>BLP / DB2 inspection</strong><small>Metadata inspection foundation active.</small></div></article>
-            <article class="diag"><span class="status-dot warn"></span><div><strong>Local CASC</strong><small>Index/root/encoding traversal is the next core milestone.</small></div></article>
+            <article class="diag"><span class="status-dot good"></span><div><strong>Local CASC</strong><small>Live virtual catalog browsing, inspection, and selected-file extraction are active.</small></div></article>
           </div>
           <pre id="eventLog" class="event-log">WoW Ripper ready.</pre>
         </div>

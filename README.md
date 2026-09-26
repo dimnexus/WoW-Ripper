@@ -13,22 +13,22 @@ This repository is a clean-room implementation. It does not contain source code 
 - Provide addon-focused research tools that turn asset discoveries into Lua-friendly data.
 - Keep ripping, inspection, conversion, and queue management in one fast desktop UI.
 
-## Alpha foundation
+## Current alpha
 
 The initial foundation includes:
 
 - Original Tauri/Rust desktop shell.
-- WoW install/build scanner.
+- Explicit WoW product-folder selection and build detection.
 - `.build.info` parser.
-- ListFile importer and in-memory FileDataID/path search.
+- Live CASC catalog loading, virtual folder browsing, FileDataID search, and optional custom ListFile import.
 - BLP2 metadata inspector.
 - DB2/DBC signature and common-header inspector.
 - BLTE decoder foundation for raw and zlib chunks.
 - General asset magic inspector.
 - Addon Lab with Lua constant generation.
-- Extraction/activity queue HUD.
+- Direct selected-file CASC inspection and extraction with path preservation.\n- Extraction/activity queue HUD.
 
-Full local CASC traversal, encrypted BLTE support, M2/WMO/ADT rendering, BLP conversion, DB2 schema decoding, and bulk extraction are tracked on the roadmap.
+The current CASC transport is integrated through the MIT-licensed `casc-lib` Rust crate as an explicit dependency; WoW Ripper does not vendor or copy that source. M2/WMO/ADT rendering, BLP conversion, DB2 schema decoding, richer previews, and bulk extraction remain on the roadmap.
 
 ## Run from source
 
