@@ -3,16 +3,22 @@ mod core;
 use core::{
     blte,
     build_info,
+    casc::{self, CascSession},
     inspector,
     installs,
     listfile::ListfileIndex,
-    types::{AssetInspection, DecodeResult, InstallCandidate, ListfileMatch, ListfileSummary, WowBuildInfo},
+    types::{
+        AssetInspection, CascCatalogInfo, CascDirectoryListing, CascExtractResult, DecodeResult,
+        InstallCandidate, ListfileMatch, ListfileSummary, WowBuildInfo,
+    },
 };
 use std::{fs, path::PathBuf, sync::Mutex};
 
 #[derive(Default)]
 struct AppState {
     listfile: Mutex<Option<ListfileIndex>>,
+    listfile_path: Mutex<Option<PathBuf>>,
+    casc: Mutex<Option<CascSession>>,
 }
 
 #[tauri::command]
@@ -26,16 +32,72 @@ fn inspect_wow_install(path: String) -> Result<WowBuildInfo, String> {
 }
 
 #[tauri::command]
+fn open_casc_catalog(path: String, state: tauri::State<'_, AppState>) -> Result<CascCatalogInfo, String> {
+    let selected = user_path(&path);
+    let custom_listfile = state
+        .listfile_path
+        .lock()
+        .map_err(|_| "ListFile path state lock poisoned".to_string())?
+        .clone();
+
+    let (session, info) = CascSession::open(&selected, custom_listfile.as_deref())
+        .map_err(|err| err.to_string())?;
+
+    let (runtime_index, _) = ListfileIndex::from_entries(session.files().to_vec());
+    *state.listfile.lock().map_err(|_| "ListFile state lock poisoned".to_string())? = Some(runtime_index);
+    *state.casc.lock().map_err(|_| "CASC state lock poisoned".to_string())? = Some(session);
+
+    Ok(info)
+}
+
+#[tauri::command]
+fn browse_casc_directory(path: String, state: tauri::State<'_, AppState>) -> Result<CascDirectoryListing, String> {
+    let guard = state.casc.lock().map_err(|_| "CASC state lock poisoned".to_string())?;
+    let session = guard.as_ref().ok_or_else(|| "Choose a WoW build before browsing CASC".to_string())?;
+    Ok(session.list_directory(&path))
+}
+
+#[tauri::command]
+fn inspect_casc_file(file_data_id: u32, state: tauri::State<'_, AppState>) -> Result<AssetInspection, String> {
+    let guard = state.casc.lock().map_err(|_| "CASC state lock poisoned".to_string())?;
+    let session = guard.as_ref().ok_or_else(|| "Choose a WoW build before inspecting CASC files".to_string())?;
+    session.inspect_file(file_data_id).map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+fn extract_casc_file(
+    file_data_id: u32,
+    output_root: Option<String>,
+    state: tauri::State<'_, AppState>,
+) -> Result<CascExtractResult, String> {
+    let output = output_root
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .map(user_path);
+
+    let guard = state.casc.lock().map_err(|_| "CASC state lock poisoned".to_string())?;
+    let session = guard.as_ref().ok_or_else(|| "Choose a WoW build before extracting CASC files".to_string())?;
+    session.extract_file(file_data_id, output.as_deref()).map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+fn default_extract_root() -> String {
+    casc::default_extract_root().display().to_string()
+}
+
+#[tauri::command]
 fn import_listfile(path: String, state: tauri::State<'_, AppState>) -> Result<ListfileSummary, String> {
-    let (index, summary) = ListfileIndex::load(&user_path(&path)).map_err(|err| err.to_string())?;
+    let cleaned = user_path(&path);
+    let (index, summary) = ListfileIndex::load(&cleaned).map_err(|err| err.to_string())?;
     *state.listfile.lock().map_err(|_| "ListFile state lock poisoned".to_string())? = Some(index);
+    *state.listfile_path.lock().map_err(|_| "ListFile path state lock poisoned".to_string())? = Some(cleaned);
     Ok(summary)
 }
 
 #[tauri::command]
 fn search_listfile(query: String, limit: Option<usize>, state: tauri::State<'_, AppState>) -> Result<Vec<ListfileMatch>, String> {
     let guard = state.listfile.lock().map_err(|_| "ListFile state lock poisoned".to_string())?;
-    let index = guard.as_ref().ok_or_else(|| "Import a ListFile first".to_string())?;
+    let index = guard.as_ref().ok_or_else(|| "Load a WoW build or import a ListFile first".to_string())?;
     Ok(index.search(&query, limit.unwrap_or(250).clamp(1, 2000)))
 }
 
@@ -81,6 +143,11 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             scan_installs,
             inspect_wow_install,
+            open_casc_catalog,
+            browse_casc_directory,
+            inspect_casc_file,
+            extract_casc_file,
+            default_extract_root,
             import_listfile,
             search_listfile,
             inspect_asset,

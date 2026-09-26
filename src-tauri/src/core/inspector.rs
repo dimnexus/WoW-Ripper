@@ -11,17 +11,21 @@ pub enum InspectError {
 
 pub fn inspect(path: &Path) -> Result<AssetInspection, InspectError> {
     let bytes = fs::read(path)?;
+    Ok(inspect_bytes(&path.display().to_string(), &bytes))
+}
+
+pub fn inspect_bytes(label: &str, bytes: &[u8]) -> AssetInspection {
     let size = bytes.len() as u64;
     let mut details = BTreeMap::new();
     let format = if bytes.starts_with(b"BLP2") {
-        match blp::inspect(&bytes) { Ok(map) => { details = map; "BLP2" }, Err(err) => { details.insert("error".into(), json!(err.to_string())); "BLP2" } }
+        match blp::inspect(bytes) { Ok(map) => { details = map; "BLP2" }, Err(err) => { details.insert("error".into(), json!(err.to_string())); "BLP2" } }
     } else if bytes.starts_with(b"BLTE") {
         let header_size = bytes.get(4..8).map(|s| u32::from_be_bytes(s.try_into().unwrap())).unwrap_or(0);
         details.insert("header_size".into(), json!(header_size));
         details.insert("decoder_modes".into(), json!(["N/raw", "Z/zlib"]));
         "BLTE"
-    } else if is_db_signature(&bytes) {
-        match db2::inspect(&bytes) { Ok(map) => { details = map; "DBC/DB2" }, Err(err) => { details.insert("error".into(), json!(err.to_string())); "DBC/DB2" } }
+    } else if is_db_signature(bytes) {
+        match db2::inspect(bytes) { Ok(map) => { details = map; "DBC/DB2" }, Err(err) => { details.insert("error".into(), json!(err.to_string())); "DBC/DB2" } }
     } else if bytes.starts_with(b"MD20") || bytes.starts_with(b"MD21") {
         details.insert("magic".into(), json!(String::from_utf8_lossy(&bytes[0..4]).to_string()));
         "M2 model"
@@ -37,7 +41,7 @@ pub fn inspect(path: &Path) -> Result<AssetInspection, InspectError> {
         "Unknown"
     };
 
-    Ok(AssetInspection { path: path.display().to_string(), size, format: format.to_string(), details })
+    AssetInspection { path: label.to_string(), size, format: format.to_string(), details }
 }
 
 fn is_db_signature(bytes: &[u8]) -> bool {

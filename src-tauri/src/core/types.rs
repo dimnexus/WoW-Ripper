@@ -40,6 +40,46 @@ pub struct ListfileMatch {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct CascCatalogInfo {
+    pub selected_path: String,
+    pub install_root: String,
+    pub product: String,
+    pub version: String,
+    pub build_name: String,
+    pub root_format: String,
+    pub files: usize,
+    pub encoding_entries: usize,
+    pub root_entries: usize,
+    pub index_entries: usize,
+    pub listfile_entries: usize,
+    pub default_extract_root: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CascVirtualEntry {
+    pub name: String,
+    pub path: String,
+    pub kind: String,
+    pub file_data_id: Option<u32>,
+    pub extension: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CascDirectoryListing {
+    pub path: String,
+    pub folders: Vec<CascVirtualEntry>,
+    pub files: Vec<CascVirtualEntry>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CascExtractResult {
+    pub file_data_id: u32,
+    pub virtual_path: String,
+    pub output_path: String,
+    pub bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct AssetInspection {
     pub path: String,
     pub size: u64,
