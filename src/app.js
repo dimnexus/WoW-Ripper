@@ -1,5 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const invoke = window.__TAURI__?.core?.invoke;
+const SAVED_WOW_PATH_KEY = 'wowRipper.wowInstallPath';
 
 const state = {
   view: 'home',
@@ -52,7 +53,7 @@ function updateBuildUI(build) {
   if (!build) {
     pill.innerHTML = '<span class="status-dot idle"></span><span>No build loaded</span>';
     $('metricBuild').textContent = 'None';
-    $('metricProduct').textContent = 'Scan or load a WoW folder';
+    $('metricProduct').textContent = 'Choose your WoW installation folder';
     return;
   }
   pill.innerHTML = `<span class="status-dot good"></span><span>${escapeHtml(build.version || build.product || 'WoW build')}</span>`;
@@ -73,30 +74,28 @@ function addQueue(label, status = 'completed') {
 
 $('clearQueue').addEventListener('click', () => { state.queue.length = 0; updateQueueUI(); });
 
-$('scanButton').addEventListener('click', async () => {
-  try {
-    const installs = await call('scan_installs');
-    if (!installs.length) {
-      log('No default WoW installs detected. Use Load Build with an explicit path.');
-      showView('diagnostics');
-      return;
-    }
-    const chosen = installs[0];
-    $('inspectPath').value = chosen.path;
-    const info = await call('inspect_wow_install', { path: chosen.path });
-    updateBuildUI(info);
-    log(`Detected ${installs.length} install candidate(s)`, installs);
-  } catch (err) { /* logged */ }
-});
-
 $('openBuildButton').addEventListener('click', () => {
-  const path = prompt('Enter your World of Warcraft installation folder path:');
+  const remembered = localStorage.getItem(SAVED_WOW_PATH_KEY) || '';
+  const path = prompt('Enter your World of Warcraft installation folder path:', remembered);
   if (!path) return;
   call('inspect_wow_install', { path }).then((info) => {
+    localStorage.setItem(SAVED_WOW_PATH_KEY, path);
     updateBuildUI(info);
-    log('Loaded build', info);
+    log('Loaded build from selected folder', info);
   }).catch(() => {});
 });
+
+async function loadRememberedBuild() {
+  const path = localStorage.getItem(SAVED_WOW_PATH_KEY);
+  if (!path || !invoke) return;
+  try {
+    const info = await call('inspect_wow_install', { path });
+    updateBuildUI(info);
+    log('Reloaded remembered WoW folder', { path });
+  } catch (err) {
+    log('Remembered WoW folder could not be loaded. Choose the folder again.', { path });
+  }
+}
 
 $('importListfile').addEventListener('click', async () => {
   const path = $('listfilePath').value.trim();
@@ -221,4 +220,5 @@ function escapeAttr(value) { return escapeHtml(value).replace(/`/g, '&#096;'); }
 
 updateBuildUI(null);
 updateQueueUI();
-log('WoW Ripper HUD initialized.');
+loadRememberedBuild();
+log('WoW Ripper HUD initialized. Drive scanning is disabled; WoW folder selection is explicit.');
